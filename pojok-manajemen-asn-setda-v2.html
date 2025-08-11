@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pojok Manajemen ASN — Setda</title>
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --muted:#9ca3af; --text:#e5e7eb;
+      --accent:#22d3ee; --accent-2:#60a5fa; --ok:#34d399; --warn:#fbbf24;
+      --danger:#fb7185; --card:#0b1220; --border:#1f2937;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:linear-gradient(180deg,var(--bg),#020617);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;line-height:1.55}
+    a{color:var(--accent)}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:16px}
+    header h1{font-size:clamp(20px,4vw,28px);margin:0}
+    .badge{padding:4px 10px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#001b2b;font-weight:700;letter-spacing:.2px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid var(--border);border-radius:16px;padding:16px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:920px){.grid{grid-template-columns:280px 1fr}}
+    nav{position:sticky;top:12px}
+    .navlink{display:block;padding:10px 12px;border-radius:10px;color:var(--text);text-decoration:none;border:1px solid transparent}
+    .navlink:hover,.navlink.active{background:linear-gradient(180deg,rgba(34,211,238,.12),rgba(96,165,250,.10));border-color:rgba(34,211,238,.35)}
+    .search{display:flex;gap:8px;align-items:center;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:8px 12px}
+    .search input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:14px}
+    .kicker{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.14em}
+    h2{margin:8px 0 12px;font-size:20px}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:#0b1220;color:var(--muted);font-size:12px;margin-right:6px}
+    .pill.ok{border-color:rgba(52,211,153,.3);color:#bbf7d0}
+    .pill.warn{border-color:rgba(251,191,36,.35);color:#fde68a}
+    .section{display:none;animation:fade .25s ease}
+    .section.active{display:block}
+    @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+    details{background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:12px;margin:10px 0}
+    summary{cursor:pointer;font-weight:600}
+    .twocol{display:grid;grid-template-columns:1fr;gap:10px}
+    @media(min-width:760px){.twocol{grid-template-columns:1fr 1fr}}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border:1px solid var(--border);padding:8px;vertical-align:top}
+    .table th{background:rgba(34,211,238,.08);text-align:left}
+    footer{margin-top:24px;color:var(--muted);font-size:12px}
+    .note{font-size:12px;color:#cbd5e1}
+    .hl{background:linear-gradient(180deg,rgba(34,211,238,.12),rgba(96,165,250,.10));border-left:3px solid var(--accent);padding:8px 10px;border-radius:10px;margin:10px 0}
+    .btn{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#001b2b;border:none;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}
+    .small{font-size:12px;color:var(--muted)}
+    .kbd{background:#111827;border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;font-size:12px;color:#e2e8f0}
+    .law{font-size:12px;color:#a5b4fc}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🧭 Pojok Manajemen ASN <span class="badge">SETDA</span></h1>
+      <button class="btn" onclick="window.print()">Cetak / Simpan PDF</button>
+    </header>
+
+    <div class="card search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/></svg>
+      <input id="q" placeholder="Cari topik, mis. 'cuti', 'KGB', 'izin belajar', 'SKP'…" />
+      <span class="small">Gunakan <span class="kbd">Ctrl</span> + <span class="kbd">F</span> juga bisa.</span>
+    </div>
+
+    <div class="grid" style="margin-top:12px">
+      <nav class="card" id="nav">
+        <div class="kicker">Topik</div>
+        <a class="navlink active" data-target="izin">Izin Belajar & Tugas Belajar</a>
+        <a class="navlink" data-target="cuti">Cuti Pegawai</a>
+        <a class="navlink" data-target="kgb">Kenaikan Gaji Berkala (KGB)</a>
+        <a class="navlink" data-target="pangkat">Kenaikan Pangkat</a>
+        <a class="navlink" data-target="ukom">Uji Kompetensi JF (UKom)</a>
+        <a class="navlink" data-target="skp">SKP / Pengelolaan Kinerja</a>
+        <a class="navlink" data-target="disiplin">Disiplin PNS</a>
+        <a class="navlink" data-target="perjadin">Perjalanan Dinas</a>
+        <a class="navlink" data-target="faq">FAQ & Kontak</a>
+      </nav>
+
+      <main class="card">
+        <!-- IZIN/TUGAS BELAJAR -->
+        <section id="izin" class="section active">
+          <div class="kicker">Pengembangan Kompetensi</div>
+          <h2>Izin Belajar & Tugas Belajar</h2>
+          <div class="pill ok">Boleh • Mendukung tugas</div>
+          <div class="pill warn">Perlu Persetujuan</div>
+          <div class="hl">Ringkas: <b>Tugas Belajar</b> = dibiayai & dibebaskan dari tugas; <b>Izin Belajar</b> = biaya sendiri & tetap bekerja.</div>
+
+          <div class="twocol">
+            <details open>
+              <summary>Ringkasan Perbedaan</summary>
+              <table class="table">
+                <thead><tr><th>Aspek</th><th>Tugas Belajar</th><th>Izin Belajar</th></tr></thead>
+                <tbody>
+                  <tr><td>Pembiayaan</td><td>Pemerintah/Beasiswa</td><td>Biaya sendiri</td></tr>
+                  <tr><td>Status Kedinasan</td><td>Dibebaskan dari tugas</td><td>Tetap bekerja</td></tr>
+                  <tr><td>Masa Kerja Minimum</td><td>± ≥ 2 tahun</td><td>± ≥ 1 tahun</td></tr>
+                  <tr><td>Relevansi Studi</td><td>Sesuai kebutuhan instansi</td><td>Mendukung jabatan</td></tr>
+                  <tr><td>Dokumen</td><td>SK Penugasan Belajar</td><td>Surat Izin Belajar</td></tr>
+                </tbody>
+              </table>
+              <p class="note">Catatan: Sesuaikan angka & detail dengan kebijakan BKPSDM/Perkada terbaru di instansi Anda.</p>
+            </details>
+
+            <details>
+              <summary>Persyaratan Umum</summary>
+              <ul>
+                <li>Nilai kinerja (SKP) baik dan tidak sedang menjalani hukuman disiplin.</li>
+                <li>Program studi terakreditasi dan relevan.</li>
+                <li>Ada rekomendasi atasan & persetujuan PPK atau yang didelegasikan.</li>
+                <li>Tidak konflik jadwal kerja (untuk izin belajar).</li>
+              </ul>
+            </details>
+          </div>
+
+          <details>
+            <summary>Prosedur Singkat</summary>
+            <ol>
+              <li>Ajukan permohonan ke Subbag Kepegawaian/Umpeg dengan lampiran (rencana studi, jadwal kuliah, akreditasi).</li>
+              <li>Verifikasi administrasi → paraf atasan → persetujuan PPK.</li>
+              <li>Terbit SK Penugasan/Izin Belajar.</li>
+              <li>Monitoring & pelaporan perkembangan studi per semester (jika diperlukan).</li>
+            </ol>
+          </details>
+
+          <p class="law">Rujukan: SE MenPANRB (terkini) ttg Tugas/Izin Belajar.</p>
+        </section>
+
+        <!-- CUTI -->
+        <section id="cuti" class="section">
+          <div class="kicker">Hak Pegawai</div>
+          <h2>Cuti Pegawai</h2>
+          <div class="pill ok">Hak Normatif</div>
+          <div class="pill warn">Ikuti Prosedur</div>
+
+          <details open>
+            <summary>Jenis Cuti (ringkas)</summary>
+            <ul>
+              <li>Cuti Tahunan</li>
+              <li>Cuti Besar</li>
+              <li>Cuti Sakit</li>
+              <li>Cuti Melahirkan</li>
+              <li>Cuti Karena Alasan Penting</li>
+              <li>Cuti di Luar Tanggungan Negara (CLTN)</li>
+            </ul>
+            <p class="note">Rujuk regulasi terbaru & pedoman internal untuk durasi dan syarat tiap jenis.</p>
+          </details>
+
+          <details>
+            <summary>Prosedur Umum</summary>
+            <ol>
+              <li>Isi formulir cuti & persetujuan atasan langsung.</li>
+              <li>Verifikasi kepegawaian → penetapan pejabat berwenang.</li>
+              <li>Dokumentasi ke SIASN / aplikasi internal (jika ada).</li>
+            </ol>
+          </details>
+        </section>
+
+        <!-- KGB -->
+        <section id="kgb" class="section">
+          <div class="kicker">Penggajian</div>
+          <h2>Kenaikan Gaji Berkala (KGB)</h2>
+          <div class="pill ok">Berkala</div>
+          <div class="pill warn">Syarat Kinerja</div>
+
+          <details open>
+            <summary>Ringkas</summary>
+            <p>KGB diberikan berkala sesuai masa kerja & ketentuan pangkat/golongan, dengan syarat kinerja & disiplin baik dan tidak ada hukuman yang menunda KGB.</p>
+          </details>
+
+          <details>
+            <summary>Prosedur Umum</summary>
+            <ol>
+              <li>Notifikasi jatuh tempo oleh kepegawaian (cek masa kerja & SKP).</li>
+              <li>Verifikasi data (SK terakhir, masa kerja, hukdis).</li>
+              <li>Terbit SK KGB & pembaruan di sistem penggajian.</li>
+            </ol>
+          </details>
+        </section>
+
+        <!-- PANGKAT -->
+        <section id="pangkat" class="section">
+          <div class="kicker">Karier</div>
+          <h2>Kenaikan Pangkat</h2>
+          <div class="pill ok">Reguler/Fungsional</div>
+          <div class="pill warn">Persyaratan Berkas</div>
+
+          <details open>
+            <summary>Garis Besar</summary>
+            <ul>
+              <li>Reguler: memenuhi masa kerja & nilai kinerja.</li>
+              <li>Fungsional: angka kredit terpenuhi, UKom lulus, diklat/ujikom sesuai, kuota tersedia.</li>
+            </ul>
+          </details>
+          <p class="law">Rujukan: Peraturan BKN No. 3/2023 (AK & kenaikan jenjang/pangkat JF).</p>
+        </section>
+
+        <!-- UKOM JF -->
+        <section id="ukom" class="section">
+          <div class="kicker">JF</div>
+          <h2>Uji Kompetensi Jabatan Fungsional (UKom)</h2>
+          <div class="pill ok">Wajib untuk jenjang</div>
+          <div class="pill warn">Syarat & Jadwal</div>
+
+          <details open>
+            <summary>Ringkas</summary>
+            <ul>
+              <li><b>UKom</b> diperlukan untuk <i>kenaikan jenjang</i>, perpindahan jenjang, atau penyesuaian tertentu pada JF.</li>
+              <li>Prasyarat umum: masa kerja minimal pada jenjang sekarang (umumnya ≥ 1 tahun untuk usulan kenaikan jenjang), <b>lulus UKom</b>, <b>angka kredit</b> terpenuhi, <b>kinerja minimal “Baik”</b>, tidak sedang menjalani <b>hukdis</b>, dan tersedia <b>kebutuhan formasi</b>.</li>
+            </ul>
+          </details>
+
+          <details>
+            <summary>Alur Singkat</summary>
+            <ol>
+              <li>Usulan dari unit → BKPSDM/Biro Kepegawaian → Instansi Pembina/BKN (sesuai JF).</li>
+              <li>Verifikasi & penjadwalan UKom.</li>
+              <li>Pelaksanaan UKom → pengumuman hasil → penetapan kenaikan jenjang (bila memenuhi syarat lain).</li>
+            </ol>
+          </details>
+
+          <p class="law">Rujukan: Peraturan BKN No. 3/2023 (AK & kenaikan jenjang JF), informasi UKom BKN (jadwal/teknis).</p>
+        </section>
+
+        <!-- SKP / KINERJA -->
+        <section id="skp" class="section">
+          <div class="kicker">Kinerja</div>
+          <h2>SKP / Pengelolaan Kinerja ASN</h2>
+          <div class="pill ok">Perencanaan–Dialog–Evaluasi</div>
+          <div class="pill warn">Berbasis Ekspektasi</div>
+
+          <details open>
+            <summary>Inti Kebijakan</summary>
+            <ul>
+              <li>Pengelolaan kinerja meliputi <b>perencanaan kinerja</b> (ekspektasi hasil & perilaku), <b>pelaksanaan/monitoring</b> (dialog kinerja berkala), dan <b>evaluasi</b> (penilaian akhir & tindak lanjut).</li>
+              <li>Komponen: <b>kinerja individu (hasil)</b> & <b>perilaku kerja</b> yang sejalan nilai ASN.</li>
+              <li>Hasil evaluasi digunakan untuk penghargaan, pengembangan, hingga konsekuensi kinerja.</li>
+            </ul>
+          </details>
+
+          <details>
+            <summary>Praktik di Unit</summary>
+            <ol>
+              <li>Susun SKP yang terhubung ke tujuan unit/Perjanjian Kinerja.</li>
+              <li>Dialog kinerja minimal triwulanan untuk review progres & dukungan.</li>
+              <li>Penilaian akhir tahun + umpan balik & rencana pengembangan.</li>
+            </ol>
+          </details>
+
+          <p class="law">Rujukan: PermenPANRB No. 6/2022 tentang Pengelolaan Kinerja ASN.</p>
+        </section>
+
+        <!-- DISIPLIN -->
+        <section id="disiplin" class="section">
+          <div class="kicker">Etika Kerja</div>
+          <h2>Disiplin PNS</h2>
+          <div class="pill ok">Kewajiban & Larangan</div>
+          <div class="pill warn">Sanksi Berjenjang</div>
+
+          <details open>
+            <summary>Tingkat & Jenis Hukuman</summary>
+            <table class="table">
+              <thead><tr><th>Tingkat</th><th>Jenis (contoh)</th></tr></thead>
+              <tbody>
+                <tr><td>Ringan</td><td>Teguran lisan; Teguran tertulis; Pernyataan tidak puas secara tertulis.</td></tr>
+                <tr><td>Sedang</td><td>Pemotongan Tunjangan Kinerja 25% selama 6/9/12 bulan.</td></tr>
+                <tr><td>Berat</td><td>Penurunan jabatan setingkat selama 12 bulan; Pembebasan dari JF; Pemberhentian dengan hormat tidak atas permintaan sendiri; Pemberhentian tidak dengan hormat (sesuai kasus).</td></tr>
+              </tbody>
+            </table>
+          </details>
+
+          <details>
+            <summary>Prinsip Penjatuhan</summary>
+            <ul>
+              <li>Berdasar pemeriksaan & bukti; proporsional dengan pelanggaran.</li>
+              <li>Pejabat yang berwenang menghukum sesuai kewenangannya.</li>
+              <li>PNS berhak mengajukan keberatan/upaya administratif.</li>
+            </ul>
+          </details>
+
+          <p class="law">Rujukan: PP No. 94/2021 (Disiplin PNS) & Peraturan BKN No. 6/2022 (pelaksanaan).</p>
+        </section>
+
+        <!-- PERJALANAN DINAS -->
+        <section id="perjadin" class="section">
+          <div class="kicker">Administrasi</div>
+          <h2>Perjalanan Dinas</h2>
+          <div class="pill ok">Sesuai Penugasan</div>
+          <div class="pill warn">Akuntabel</div>
+
+          <details open>
+            <summary>Garis Besar</summary>
+            <ul>
+              <li>Dasar: penugasan resmi (SPD) sesuai tugas & fungsi.</li>
+              <li>Komponen biaya umumnya: transport, uang harian, penginapan, & biaya lain sesuai ketentuan.</li>
+              <li>Gunakan <i>e-ticketing</i>/sistem elektronik bila diterapkan; simpan bukti sah untuk LPJ.</li>
+            </ul>
+          </details>
+
+          <details>
+            <summary>Prosedur Singkat</summary>
+            <ol>
+              <li>Pengajuan & persetujuan atasan; penerbitan SPD.</li>
+              <li>Pemesanan tiket/penginapan sesuai standar biaya.</li>
+              <li>Pelaksanaan tugas → penyusunan SPPD/LPJ dengan bukti lengkap.</li>
+            </ol>
+          </details>
+
+          <p class="law">Rujukan: PMK No. 113/PMK.05/2012 & perubahannya PMK No. 119/2023 (Perjalanan Dinas Dalam Negeri).</p>
+        </section>
+
+        <!-- FAQ -->
+        <section id="faq" class="section">
+          <div class="kicker">Bantuan</div>
+          <h2>FAQ & Kontak</h2>
+          <details open>
+            <summary>FAQ</summary>
+            <p><b>Apakah kuliah malam otomatis boleh?</b><br/>Tetap perlu izin belajar & memastikan tidak mengganggu jam kerja.</p>
+            <p><b>Apakah semua program studi boleh?</b><br/>Harus relevan dengan jabatan/kebutuhan instansi.</p>
+            <p><b>Siapa yang menandatangani izin belajar?</b><br/>PPK atau pejabat yang mendapat pelimpahan kewenangan.</p>
+            <p><b>Apakah UKom otomatis menaikkan jenjang?</b><br/>Tidak. Tetap harus memenuhi angka kredit, kinerja, dan ketersediaan kebutuhan/formasi.</p>
+          </details>
+          <details>
+            <summary>Kontak</summary>
+            <p>Subbagian Kepegawaian (Umpeg) SETDA — email internal / nomor helpdesk.</p>
+          </details>
+          <p class="note">Dokumen ini bersifat ringkas (non‑resmi). Selalu rujuk regulasi terbaru & surat edaran internal Anda.</p>
+        </section>
+      </main>
+    </div>
+
+    <footer>
+      © <span id="y"></span> SETDA — Pojok Manajemen ASN. Dibuat untuk memudahkan pegawai memahami ketentuan utama (non‑resmi).
+    </footer>
+  </div>
+
+  <script>
+    const year = new Date().getFullYear();
+    document.getElementById('y').textContent = year;
+
+    // Tab navigation
+    const links = document.querySelectorAll('.navlink');
+    const sections = document.querySelectorAll('.section');
+    links.forEach(link => {
+      link.addEventListener('click', () => {
+        links.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        const id = link.getAttribute('data-target');
+        sections.forEach(s => s.classList.toggle('active', s.id === id));
+        document.getElementById('q').value='';
+      });
+    });
+
+    // Search filter (client-side)
+    const q = document.getElementById('q');
+    q.addEventListener('input', (e)=>{
+      const term = e.target.value.toLowerCase();
+      if(!term){ return; }
+      let firstMatch = null;
+      sections.forEach(s => {
+        const match = s.textContent.toLowerCase().includes(term);
+        if(match && !firstMatch){ firstMatch = s; }
+      });
+      if(firstMatch){
+        sections.forEach(s => s.classList.toggle('active', s===firstMatch));
+        links.forEach(l => l.classList.toggle('active', l.getAttribute('data-target') === firstMatch.id));
+      }
+    });
+  </script>
+</body>
+</html>
